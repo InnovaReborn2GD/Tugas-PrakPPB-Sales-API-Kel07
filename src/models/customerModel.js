@@ -1,10 +1,28 @@
 import { supabase } from "../config/supabaseClient.js";
 
 export const CustomerModel = {
-  async getAll() {
-    const { data, error } = await supabase.from("customers").select("*");
+  async getAll({ name, page, limit }) {
+    const offset = (page - 1) * limit;
+    let query = supabase
+      .from("customers")
+      .select("*", { count: "exact" })
+      .range(offset, offset + limit - 1);
+
+    if (name) {
+      query = query.ilike("name", `%${name}%`);
+    }
+
+    const { data, error, count } = await query;
     if (error) throw error;
-    return data;
+    return { data, count };
+  },
+
+  async getTotal() {
+    const { count, error } = await supabase
+      .from("customers")
+      .select("id", { count: "exact", head: true });
+    if (error) throw error;
+    return count;
   },
 
   async getById(id) {
